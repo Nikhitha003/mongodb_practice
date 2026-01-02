@@ -1,0 +1,126 @@
+/* =========================================================
+   PLAYGROUND 3: AGGREGATION (playground-aggregation.mongodb.js)
+   ========================================================= */
+
+//
+// GOAL: Master GROUP BY and analytics queries in SQL
+//
+
+// BASIC GROUP BY
+
+//  List count of orders per status
+// SELECT status, COUNT(*) AS count FROM orders GROUP BY status;
+db.orders.aggregate([
+  {
+    $group: {
+      _id: "$status",
+      count: { $sum: 1 }
+    }
+  }
+])
+
+//  List total revenue per status
+// SELECT status, SUM(total) AS total_revenue FROM orders GROUP BY status;
+db.orders.aggregate([
+  {
+    $group: {
+      _id: "$status",
+      total_revenue: { $sum: "$total" }
+    }
+  }
+])
+
+// FILTER + GROUP
+//  List count of delivered orders per user
+// SELECT user_id, COUNT(*) FROM orders WHERE status='delivered' GROUP BY user_id;
+db.orders.aggregate([
+  {
+    $match: { status: "delivered" }
+  },
+  {
+    $group: {
+      _id: "$user_id",
+      count: { $sum: 1 }
+    }
+  }
+])
+
+// ARRAY AGGREGATION
+
+// List total quantity per product
+// SELECT product, SUM(qty) AS total_qty FROM order_items GROUP BY product;
+ db.order_items.aggregate([
+  {
+    $group: {
+      _id: "$product",
+      total_qty: { $sum: "$qty" }
+    }
+  }
+])
+
+// DERIVED FIELDS
+//  List revenue per product
+// SELECT product, SUM(price * qty) AS revenue FROM order_items GROUP BY product;
+db.order_items.aggregate([
+  {
+    $group: {
+      _id: "$product",
+      revenue: {
+        $sum: { $multiply: ["$price", "$qty"] }
+      }
+    }
+  }
+])
+
+// SORT & LIMIT
+//  List top 3 products by revenue
+// SELECT product, SUM(price*qty) AS revenue FROM order_items GROUP BY product ORDER BY revenue DESC LIMIT 3;
+db.order_items.aggregate([
+  {
+    $group: {
+      _id: "$product",
+      revenue: {
+        $sum: { $multiply: ["$price", "$qty"] }
+      }
+    }
+  },
+  { $sort: { revenue: -1 } },
+  { $limit: 3 }
+])
+
+// GLOBAL AGGREGATION
+// List total revenue across all orders
+// SELECT SUM(total) AS total_revenue FROM orders;
+db.orders.aggregate([
+  {
+    $group: {
+      _id: null,
+      total_revenue: { $sum: "$total" }
+    }
+  }
+])
+
+// OPTIONAL (ADVANCED)
+//  List daily revenue
+// SELECT DATE(ordered_at) AS day, SUM(total) AS revenue FROM orders GROUP BY DATE(ordered_at) ORDER BY day;
+
+db.orders.aggregate([
+  {
+    $group: {
+      _id: {
+        $dateToString: {
+          format: "%Y-%m-%d",
+          date: "$ordered_at"
+        }
+      },
+      revenue: { $sum: "$total" }
+    }
+  },
+  { $sort: { _id: 1 } }
+])
+
+
+
+/* =========================================================
+   END OF TODO PLAYGROUND
+   ========================================================= */
